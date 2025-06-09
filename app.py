@@ -148,6 +148,33 @@ def delete_post(post_id):
         db.session.rollback()
         return jsonify({'error': 'Не удалось удалить пост', 'message': str(e)}), 500
 
+@application.route('/posts', methods=['GET'])
+def get_posts():
+    """
+    Список всех постов
+    ---
+    tags:
+      - Posts
+    responses:
+      200:
+        description: Список постов
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              title:
+                type: string
+      500:
+        description: Ошибка сервера
+    """
+    try:
+        posts = Post.query.all()
+        return jsonify([{'id': p.id, 'title': p.title} for p in posts]), 200
+    except Exception as e:
+        return jsonify({'error': 'Не удалось получить посты', 'message': str(e)}), 500
     
 @application.cli.command("init-db")
 @with_appcontext
