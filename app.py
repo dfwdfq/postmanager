@@ -111,7 +111,44 @@ def update_post(post_id):
         db.session.rollback()
         return jsonify({'error': 'Не удалось обновить пост', 'message': str(e)}), 500
 
+@application.route('/posts/<int:post_id>', methods=['DELETE'])
+def delete_post(post_id):
+    """
+    Удалить пост
+    ---
+    tags:
+      - Posts
+    parameters:
+      - name: post_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Пост удален
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+            post_id:
+              type: integer
+      404:
+        description: Пост не найден
+      500:
+        description: Ошибка сервера
+    """
+    try:
+        post = Post.query.get_or_404(post_id)
+        db.session.delete(post)
+        db.session.commit()
+        return jsonify({'message': 'Пост удален', 'post_id': post_id}), 200
 
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Не удалось удалить пост', 'message': str(e)}), 500
+
+    
 @application.cli.command("init-db")
 @with_appcontext
 def init_db():
