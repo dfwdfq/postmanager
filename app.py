@@ -56,6 +56,61 @@ def create_post():
         'created_at': post.created_at.isoformat()
     }), 201
 
+@application.route('/posts/<int:post_id>', methods=['PUT'])
+def update_post(post_id):
+    """
+    Обновить пост
+    ---
+    tags:
+      - Posts
+    parameters:
+      - name: post_id
+        in: path
+        type: integer
+        required: true
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            title:
+              type: string
+            content:
+              type: string
+          required:
+            - title
+            - content
+    responses:
+      200:
+        description: Пост обновлен
+        schema:
+          $ref: '#/definitions/PostCreated'
+      404:
+        description: Пост не найден
+      500:
+        description: Ошибка сервера
+    """
+    try:
+        post = Post.query.get_or_404(post_id)
+        data = request.json
+
+        post.title = data.get('title', post.title)
+        post.content = data.get('content', post.content)
+
+        db.session.commit()
+
+        return jsonify({
+            'id': post.id,
+            'title': post.title,
+            'content': post.content,
+            'created_at': post.created_at.isoformat()
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Не удалось обновить пост', 'message': str(e)}), 500
+
 
 @application.cli.command("init-db")
 @with_appcontext
