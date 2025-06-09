@@ -175,6 +175,40 @@ def get_posts():
         return jsonify([{'id': p.id, 'title': p.title} for p in posts]), 200
     except Exception as e:
         return jsonify({'error': 'Не удалось получить посты', 'message': str(e)}), 500
+
+@application.route('/posts/<int:post_id>', methods=['GET'])
+def get_post(post_id):
+    """
+    Детали поста по ID
+    ---
+    tags:
+      - Posts
+    parameters:
+      - name: post_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Детали поста
+        schema:
+          $ref: '#/definitions/PostCreated'
+      404:
+        description: Пост не найден
+      500:
+        description: Ошибка сервера
+    """
+    try:
+        post = Post.query.get_or_404(post_id)
+        return jsonify({
+            'id': post.id,
+            'title': post.title,
+            'content': post.content,
+            'created_at': post.created_at.isoformat()
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': 'Не удалось получить пост', 'message': str(e)}), 500
     
 @application.cli.command("init-db")
 @with_appcontext
