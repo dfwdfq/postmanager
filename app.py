@@ -1,18 +1,65 @@
 import os
+import json
 from dotenv import load_dotenv
-from flask import Flask, url_for, redirect
+from flask import Flask, url_for, redirect, jsonify, request
 from markupsafe import escape
 from flasgger import Swagger
 from model import db, Post
+import click
+from flask.cli import with_appcontext
 
 load_dotenv()
 
 application = Flask(__name__)
-application.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///blog.db')
-db.init_app(application)
-Swagger(application)
 
+basedir = os.path.abspath(os.path.dirname(__file__))
+application.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', f'sqlite:///{os.path.join(basedir, "instance", "blog.db")}')
+
+db.init_app(application)
+
+SWAGGER_CONFIG_PATH = os.path.join(application.root_path, 'swagger_config.json')
+with open(SWAGGER_CONFIG_PATH, 'r') as f:
+    swagger_template = json.load(f)
+    
+swagger = Swagger(application,template=swagger_template)
 
 @application.route("/")
 def root():
     return redirect(url_for('flasgger.apidocs'))
+
+@application.route('/posts', methods=['POST'])
+def create_post():
+    """Создать новый пост
+    ---
+    tags:
+      - Posts
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/PostCreate'
+    responses:
+      201:
+        description: Пост создан
+        schema:
+          $ref: '#/definitions/PostCreated'
+    """
+    data = request.json
+    post = Post(title=data['title'], content=data['content'])
+    db.session.add(post)
+    db.session.commit()
+    return jsonify({
+        'id': post.id,
+        'title': post.title,
+        'content': post.content,
+        'created_at': post.created_at.isoformat()
+    }), 201
+
+
+@application.cli.command("init-db")
+@with_appcontext
+def init_db():
+    from model import Post
+    db.create_all()
+    click.echo(" Database tables created.")
